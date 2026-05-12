@@ -1,0 +1,7 @@
+[submodule "esp-idf"]
+	path = esp-idf
+	url = https://github.com/adafruit/esp-idf.git
+	branch = usbip-bridge
+[submodule "components/scpi_parser/upstream"]
+	path = components/scpi_parser/upstream
+	url = https://github.com/j123b567/scpi-parser.git
