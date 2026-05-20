@@ -8,12 +8,12 @@
  * Records kept:
  *   - board name (`:DUT:NAME`)
  *   - free-form note (`:DUT:NOTE`)
- *   - up to HARNESS_DUT_MAX_PINS named pin → GPIO bindings (`:DUT:PIN`)
  *   - up to HARNESS_DUT_MAX_WIRES (dut_label, host_label) wire records
  *     (`:DUT:WIRE`)
  *
- * The label table also backs harness_dut_resolve_pin so any `:GPIO:*` or
- * `:BUS:*:INIT` command can address pins by name.
+ * Pin-to-GPIO mappings are compile-time constants defined per board in
+ * board_pins.h.  They are visible to :GPIO:* and :BUS:*:INIT commands
+ * via harness_dut_resolve_pin() but cannot be changed at runtime.
  */
 
 #include "scpi/scpi.h"
@@ -26,10 +26,7 @@ scpi_result_t harness_dut_scpi_name(scpi_t *ctx);
 scpi_result_t harness_dut_scpi_name_q(scpi_t *ctx);
 scpi_result_t harness_dut_scpi_note(scpi_t *ctx);
 scpi_result_t harness_dut_scpi_note_q(scpi_t *ctx);
-scpi_result_t harness_dut_scpi_pin(scpi_t *ctx);
-scpi_result_t harness_dut_scpi_pin_q(scpi_t *ctx);
-scpi_result_t harness_dut_scpi_pin_del(scpi_t *ctx);
-scpi_result_t harness_dut_scpi_pin_list_q(scpi_t *ctx);
+scpi_result_t harness_dut_scpi_board_q(scpi_t *ctx);
 scpi_result_t harness_dut_scpi_wire(scpi_t *ctx);
 scpi_result_t harness_dut_scpi_wire_del(scpi_t *ctx);
 scpi_result_t harness_dut_scpi_wire_list_q(scpi_t *ctx);

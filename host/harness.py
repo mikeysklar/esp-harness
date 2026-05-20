@@ -121,7 +121,12 @@ class _HarnessCommands:
         """Reboot the device. No reply is sent; the next call will reopen the port."""
         self.write("SYST:REB")
 
-    # ---- DUT ----
+    # ---- DUT (wires and metadata only; pin→GPIO is compile-time) ----
+    def dut_board(self) -> str:
+        """Return the compiled-in board profile name (CircuitPython name)."""
+        r = self.query("DUT:BOAR?")
+        return r.strip().strip('"') or "none"
+
     def dut_name(self, name: Optional[str] = None) -> Optional[str]:
         """Get or set the DUT board name (NVS-backed)."""
         if name is None:
@@ -137,31 +142,6 @@ class _HarnessCommands:
             return r.strip().strip('"') or None
         self.write(f'DUT:NOTE "{text}"')
         return None
-
-    def dut_pin(self, label: str, gpio: Optional[int] = None) -> Optional[int]:
-        """Get or set a DUT pin label → GPIO binding.
-
-        ``gpio=-1`` records a logical pin with no GPIO (VCC, GND, NC).
-        """
-        if gpio is None:
-            return int(self.query(f'DUT:PIN? "{label}"'))
-        self.write(f'DUT:PIN "{label}",{gpio}')
-        return None
-
-    def dut_pin_del(self, label: str) -> None:
-        """Remove a pin label."""
-        self.write(f'DUT:PIN:DEL "{label}"')
-
-    def dut_pin_list(self) -> dict[str, int]:
-        """Return ``{label: gpio}`` for every recorded DUT pin."""
-        r = self.query("DUT:PIN:LIST?").strip()
-        if not r:
-            return {}
-        toks = _split_csv(r)
-        out: dict[str, int] = {}
-        for label, gpio in zip(toks[0::2], toks[1::2]):
-            out[label.strip('"')] = int(gpio)
-        return out
 
     def dut_wire(self, dut_label: str, host_label: str) -> None:
         """Record (or update) a wire entry mapping ``dut_label`` ↔ ``host_label``."""

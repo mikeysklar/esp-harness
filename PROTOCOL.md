@@ -205,20 +205,23 @@ the host uses to talk to the harness.
 
 ### `:DUT` — device-under-test metadata (NVS-backed)
 
-`:DUT` records what *board* is connected, how its pins are labeled, and which
-host signals reach which DUT pads. State persists across reboots in the NVS
-namespace `harness_dut`.
+`:DUT` records what *board* is connected and which host signals reach which
+DUT pads. State persists across reboots in the NVS namespace `harness_dut`.
+
+**Pin-to-GPIO mappings** are compile-time constants set per board in
+`board_pins.h`. They are visible to `:GPIO:*` and `:BUS:*:INIT` commands via
+`harness_dut_resolve_pin()` but cannot be changed at runtime.
+
+**Wire mappings** are the dynamic part — they describe physical harness wiring
+and are stored in NVS.
 
 | Command               | Args                              | Reply / effect                                       |
 |-----------------------|-----------------------------------|------------------------------------------------------|
+| `:DUT:BOARd?`         | —                                 | Compiled-in board profile (CircuitPython name, e.g. `"adafruit_feather_esp32s3"`) |
 | `:DUT:NAME?`          | —                                 | Board name string (`""` if unset)                    |
 | `:DUT:NAME`           | `"name"`                          | Set board name                                       |
 | `:DUT:NOTE?`          | —                                 | Free-form note                                       |
 | `:DUT:NOTE`           | `"text"`                          | Set note                                             |
-| `:DUT:PIN?`           | `"label"`                         | GPIO bound to that DUT pin label                     |
-| `:DUT:PIN`            | `"label",gpio`                    | Map label → GPIO (`-1` for power/ground/NC pads)     |
-| `:DUT:PIN:DELete`     | `"label"`                         | Remove a pin mapping                                 |
-| `:DUT:PIN:LIST?`      | —                                 | `"label1",gpio1,"label2",gpio2,...`                  |
 | `:DUT:WIRE`           | `"dut_label","host_label"`        | Record a host↔DUT wire (free-form)                   |
 | `:DUT:WIRE:DELete`    | `"dut_label"`                     | Remove a wire entry                                  |
 | `:DUT:WIRE:LIST?`     | —                                 | `"dut1","host1","dut2","host2",...`                  |
@@ -257,19 +260,16 @@ SYST:FREE?
 401528,33554432
 
 DUT:NAME "widget-rev-b"
-DUT:PIN "LED",12
 DUT:WIRE "LED","HOST_IO5"
-DUT:PIN:LIST?
-"LED",12
+DUT:WIRE:LIST?
+"LED","HOST_IO5"
 
-GPIO:DIR "LED",OUT
+GPIO:DIR "LED",OUT          # "LED" resolved to GPIO 12 via baked-in pin table
 GPIO:WRITE "LED",1
 GPIO:READ? "LED"
 1
 
-DUT:PIN "SDA",8
-DUT:PIN "SCL",9
-BUS:I2C:CONT:INIT "SDA","SCL",400000
+BUS:I2C:CONT:INIT "SDA","SCL",400000  # "SDA","SCL" resolved via baked-in table
 BUS:I2C:CONT:SCAN?
 80,104
 BUS:I2C:CONT:WRITE 0x50,#10

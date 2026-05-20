@@ -123,15 +123,12 @@ static const scpi_command_t kCommands[] = {
     { .pattern = "BUS:UART:READ?",  .callback = harness_bus_scpi_uart_read_q, },
     { .pattern = "BUS:UART:DRAin",  .callback = harness_bus_scpi_uart_drain,  },
 
-    /* Vendor: DUT metadata (NVS-backed) */
+    /* Vendor: DUT metadata (board profile + NVS-backed wires) */
+    { .pattern = "DUT:BOARd?",     .callback = harness_dut_scpi_board_q,    },
     { .pattern = "DUT:NAME",        .callback = harness_dut_scpi_name,       },
     { .pattern = "DUT:NAME?",       .callback = harness_dut_scpi_name_q,     },
     { .pattern = "DUT:NOTE",        .callback = harness_dut_scpi_note,       },
     { .pattern = "DUT:NOTE?",       .callback = harness_dut_scpi_note_q,     },
-    { .pattern = "DUT:PIN",         .callback = harness_dut_scpi_pin,        },
-    { .pattern = "DUT:PIN?",        .callback = harness_dut_scpi_pin_q,      },
-    { .pattern = "DUT:PIN:DELete",  .callback = harness_dut_scpi_pin_del,    },
-    { .pattern = "DUT:PIN:LIST?",   .callback = harness_dut_scpi_pin_list_q, },
     { .pattern = "DUT:WIRE",        .callback = harness_dut_scpi_wire,       },
     { .pattern = "DUT:WIRE:DELete", .callback = harness_dut_scpi_wire_del,   },
     { .pattern = "DUT:WIRE:LIST?",  .callback = harness_dut_scpi_wire_list_q,},

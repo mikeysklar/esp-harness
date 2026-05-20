@@ -1,0 +1,36 @@
+menu "Harness Board Configuration"
+
+choice HARNESS_BOARD
+    prompt "Target DUT board"
+    default HARNESS_BOARD_NONE
+    help
+        Select the board whose pin-to-GPIO table should be compiled in.
+        Board names follow CircuitPython conventions.
+
+        Add new boards by:
+          1. Adding a config symbol here
+          2. Adding the board_name mapping below
+          3. Adding a #elif block in board_pins.c
+
+config HARNESS_BOARD_NONE
+    bool "none (empty pin table)"
+
+config HARNESS_BOARD_ESPRESSIF_ESP32P4_FUNCTION_EV
+    bool "espressif_esp32p4_function_ev"
+
+config HARNESS_BOARD_ESPRESSIF_ESP32P4X_FUNCTION_EV
+    bool "espressif_esp32p4x_function_ev"
+
+config HARNESS_BOARD_P4HIL_BOARD
+    bool "p4hil_board"
+
+endchoice
+
+config HARNESS_BOARD_NAME
+    string
+    default "none"                             if HARNESS_BOARD_NONE
+    default "espressif_esp32p4_function_ev"    if HARNESS_BOARD_ESPRESSIF_ESP32P4_FUNCTION_EV
+    default "espressif_esp32p4x_function_ev"   if HARNESS_BOARD_ESPRESSIF_ESP32P4X_FUNCTION_EV
+    default "p4hil_board"                      if HARNESS_BOARD_P4HIL_BOARD
+
+endmenu
