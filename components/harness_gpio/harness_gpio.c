@@ -126,7 +126,9 @@ scpi_result_t harness_gpio_scpi_read_q(scpi_t *ctx)
 {
     int gpio;
     if (!resolve_real_pin(ctx, &gpio)) return SCPI_RES_ERR;
-    SCPI_ResultInt32(ctx, gpio_get_level(gpio));
+    int level = gpio_get_level(gpio);
+    ESP_LOGI(TAG, "read pin GPIO%d = %d (SCPI GPIO:READ?)", gpio, level);
+    SCPI_ResultInt32(ctx, level);
     return SCPI_RES_OK;
 }
 
@@ -135,6 +137,7 @@ scpi_result_t harness_gpio_scpi_toggle(scpi_t *ctx)
     int gpio;
     if (!resolve_real_pin(ctx, &gpio)) return SCPI_RES_ERR;
     int cur = gpio_get_level(gpio);
+    ESP_LOGI(TAG, "read pin GPIO%d = %d (SCPI GPIO:TOGGle)", gpio, cur);
     gpio_set_level(gpio, cur ? 0 : 1);
     return SCPI_RES_OK;
 }
