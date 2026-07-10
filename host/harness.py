@@ -127,6 +127,23 @@ class _HarnessCommands:
         r = self.query("DUT:BOAR?")
         return r.strip().strip('"') or "none"
 
+    def dut_pin_list(self) -> list[tuple[str, int]]:
+        """Return ``[(label, gpio), ...]`` for every pin in the board profile."""
+        r = self.query("DUT:PIN:LIST?").strip()
+        if not r:
+            return []
+        toks = _split_csv(r)
+        result: list[tuple[str, int]] = []
+        i = 0
+        while i < len(toks):
+            label = toks[i].strip('"')
+            i += 1
+            if i < len(toks):
+                gpio = int(toks[i])
+                i += 1
+                result.append((label, gpio))
+        return result
+
     def dut_name(self, name: Optional[str] = None) -> Optional[str]:
         """Get or set the DUT board name (NVS-backed)."""
         if name is None:

@@ -1,7 +1,6 @@
 #include <string.h>
 #include <stdio.h>
 #include "esp_log.h"
-#include "nvs_flash.h"
 #include "nvs.h"
 
 #include "scpi/scpi.h"
@@ -134,12 +133,10 @@ static esp_err_t save_wires_count(void)
 
 esp_err_t harness_dut_init(void)
 {
-    esp_err_t err = nvs_flash_init();
-    if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-        nvs_flash_erase();
-        err = nvs_flash_init();
-    }
-    if (err) return err;
+    /* NVS is expected to be initialised by the app's main() before calling
+       here -- this shared component is consumed by both the usbip-bridge app
+       and the standalone esp-harness app, each of which calls nvs_flash_init()
+       exactly once at startup (and owns the erase-on-corruption decision). */
 
     /* Load the compile-time pin table. */
     s_board_pins = board_get_pins(&s_board_pin_count);
@@ -255,6 +252,15 @@ scpi_result_t harness_dut_scpi_board_q(scpi_t *ctx)
     return SCPI_RES_OK;
 }
 
+scpi_result_t harness_dut_scpi_pin_list_q(scpi_t *ctx)
+{
+    for (size_t i = 0; i < s_board_pin_count; i++) {
+        SCPI_ResultText(ctx, s_board_pins[i].label);
+        SCPI_ResultInt32(ctx, s_board_pins[i].gpio);
+    }
+    return SCPI_RES_OK;
+}
+
 scpi_result_t harness_dut_scpi_wire(scpi_t *ctx)
 {
     char dut[HARNESS_DUT_MAX_LABEL_LEN + 1];
@@ -328,4 +334,61 @@ scpi_result_t harness_dut_scpi_clear(scpi_t *ctx)
     }
     memset(&s, 0, sizeof(s));
     return SCPI_RES_OK;
+}
+
+/* ---- Public C API for wire records ---- */
+
+bool harness_dut_get_wire(const char *dut_label, char *host_out, size_t host_size)
+{
+    ssize_t i = wire_index(dut_label);
+    if (i < 0) {
+        if (host_out && host_size > 0) host_out[0] = '\0';
+        return false;
+    }
+    if (host_out) {
+        strncpy(host_out, s.wires[i].host, host_size - 1);
+        host_out[host_size - 1] = '\0';
+    }
+    return true;
+}
+
+esp_err_t harness_dut_set_wire(const char *dut_label, const char *host_label)
+{
+    if (!dut_label) return ESP_ERR_INVALID_ARG;
+
+    /* If host_label is empty or NULL, delete the wire record */
+    if (!host_label || host_label[0] == '\0') {
+        ssize_t i = wire_index(dut_label);
+        if (i < 0) return ESP_OK;
+        /* Delete by swapping with last */
+        s.wire_count--;
+        if ((size_t)i != s.wire_count) s.wires[i] = s.wires[s.wire_count];
+        char k[16]; wire_key(k, s.wire_count);
+        erase_key(k);
+        if ((size_t)i != s.wire_count) {
+            wire_key(k, (size_t)i);
+            save_blob(k, &s.wires[i], sizeof(wire_t));
+        }
+        ESP_LOGI(TAG, "cleared DUT pin name '%s'", dut_label);
+        return save_wires_count();
+    }
+
+    /* Find existing or create new */
+    ssize_t i = wire_index(dut_label);
+    if (i < 0) {
+        if (s.wire_count >= HARNESS_DUT_MAX_WIRES) return ESP_ERR_NO_MEM;
+        i = (ssize_t)s.wire_count++;
+    }
+
+    strncpy(s.wires[i].dut, dut_label, sizeof(s.wires[i].dut) - 1);
+    s.wires[i].dut[sizeof(s.wires[i].dut) - 1] = '\0';
+    strncpy(s.wires[i].host, host_label, sizeof(s.wires[i].host) - 1);
+    s.wires[i].host[sizeof(s.wires[i].host) - 1] = '\0';
+
+    char k[16]; wire_key(k, (size_t)i);
+    esp_err_t err = save_blob(k, &s.wires[i], sizeof(wire_t));
+    ESP_LOGI(TAG, "saved DUT pin name '%s' -> '%s'",
+             s.wires[i].dut, s.wires[i].host);
+    if (err) return err;
+    return save_wires_count();
 }

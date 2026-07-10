@@ -27,6 +27,7 @@ scpi_result_t harness_dut_scpi_name_q(scpi_t *ctx);
 scpi_result_t harness_dut_scpi_note(scpi_t *ctx);
 scpi_result_t harness_dut_scpi_note_q(scpi_t *ctx);
 scpi_result_t harness_dut_scpi_board_q(scpi_t *ctx);
+scpi_result_t harness_dut_scpi_pin_list_q(scpi_t *ctx);
 scpi_result_t harness_dut_scpi_wire(scpi_t *ctx);
 scpi_result_t harness_dut_scpi_wire_del(scpi_t *ctx);
 scpi_result_t harness_dut_scpi_wire_list_q(scpi_t *ctx);

@@ -35,6 +35,19 @@ bool harness_dut_pin_lookup(const char *label, int *gpio_out);
  */
 bool harness_dut_resolve_pin(scpi_t *ctx, int *gpio_out);
 
+/**
+ * Get the host-side label (DUT name) for a DUT pin.
+ * Returns true if a wire record exists, false otherwise.
+ * If not found, host_out is set to "" (empty string).
+ */
+bool harness_dut_get_wire(const char *dut_label, char *host_out, size_t host_size);
+
+/**
+ * Set (or update) the host-side label for a DUT pin.
+ * Pass an empty string or NULL to remove the wire record.
+ */
+esp_err_t harness_dut_set_wire(const char *dut_label, const char *host_label);
+
 #ifdef __cplusplus
 }
 #endif

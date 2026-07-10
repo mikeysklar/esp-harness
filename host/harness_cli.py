@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CLI for managing wire mappings on an esp-harness device.
+"""CLI for managing wire mappings and pins on an esp-harness device.
 
 Pin-to-GPIO mappings are baked into the firmware at compile time (per board)
 and are read-only at runtime.
@@ -16,6 +16,23 @@ Usage:
 
     # Delete a wire mapping by DUT label
     python3 harness_cli.py wire delete LED
+
+    # List all board pins (from the compiled-in pin table)
+    python3 harness_cli.py pin list
+
+    # Read a pin value by DUT label or GPIO number
+    python3 harness_cli.py pin read USB_POWER_ON
+    python3 harness_cli.py pin read 27
+
+    # Write a pin value
+    python3 harness_cli.py pin write USB_POWER_ON 1
+
+    # Toggle a pin
+    python3 harness_cli.py pin toggle USB_POWER_ON
+
+    # Set/get pin direction
+    python3 harness_cli.py pin dir USB_POWER_ON OUT
+    python3 harness_cli.py pin dir USB_POWER_ON
 
     # Show full DUT status (identity, name, note, wires)
     python3 harness_cli.py status
@@ -68,6 +85,57 @@ def cmd_wire_delete(h: HarnessSerial, args: argparse.Namespace) -> None:
         die(f"Wire with DUT label '{args.dut_label}' not found")
     h.dut_wire_del(args.dut_label)
     print(f"Wire mapping deleted: {args.dut_label}")
+
+
+# ---------------------------------------------------------------------------
+# Pin subcommands
+# ---------------------------------------------------------------------------
+
+def cmd_pin_list(h: HarnessSerial, args: argparse.Namespace) -> None:
+    """List all pins in the compiled-in board profile."""
+    board = h.dut_board()
+    print(f"Board: {board}")
+    print()
+    pins = h.dut_pin_list()
+    if not pins:
+        print("No pins defined for this board profile.")
+        return
+    print(f"{'Label':<32} {'GPIO':<6}")
+    print("-" * 40)
+    for label, gpio in sorted(pins, key=lambda x: (x[1], x[0])):
+        print(f"{label:<32} {gpio:<6}")
+
+
+def cmd_pin_read(h: HarnessSerial, args: argparse.Namespace) -> None:
+    """Read the current value of a pin."""
+    val = h.gpio_read(args.pin)
+    print(f"{args.pin} = {val}")
+
+
+def cmd_pin_write(h: HarnessSerial, args: argparse.Namespace) -> None:
+    """Set a pin to a specific level (0 or 1)."""
+    h.gpio_write(args.pin, args.level)
+    print(f"{args.pin} = {args.level}")
+
+
+def cmd_pin_toggle(h: HarnessSerial, args: argparse.Namespace) -> None:
+    """Toggle a pin (invert its current output level)."""
+    h.gpio_toggle(args.pin)
+    # Read back to show the new value
+    val = h.gpio_read(args.pin)
+    print(f"{args.pin} toggled → {val}")
+
+
+def cmd_pin_dir(h: HarnessSerial, args: argparse.Namespace) -> None:
+    """Get or set pin direction."""
+    if args.direction is None:
+        # Query
+        d = h.gpio_dir_query(args.pin)
+        print(f"{args.pin} direction: {d}")
+    else:
+        # Set
+        h.gpio_dir(args.pin, args.direction)
+        print(f"{args.pin} direction set to {args.direction}")
 
 
 # ---------------------------------------------------------------------------
@@ -158,7 +226,7 @@ def cmd_repl(h: HarnessSerial, args: argparse.Namespace) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Manage wire mappings on an esp-harness device.",
+        description="Manage wires and pins on an esp-harness device.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
@@ -197,6 +265,34 @@ def build_parser() -> argparse.ArgumentParser:
                                    help="Delete a wire mapping")
     wire_del.add_argument("dut_label", help="DUT-side label of wire to remove")
     wire_del.set_defaults(func=cmd_wire_delete)
+
+    # --- pin ---
+    pin = sub.add_parser("pin", help="Manage board pins (read, write, toggle, dir)")
+    pin_sub = pin.add_subparsers(dest="subcommand", required=True)
+
+    pin_list = pin_sub.add_parser("list", help="List all board pins with GPIO numbers")
+    pin_list.set_defaults(func=cmd_pin_list)
+
+    pin_read = pin_sub.add_parser("read", help="Read a pin value")
+    pin_read.add_argument("pin", help="Pin label (e.g. USB_POWER_ON) or GPIO number")
+    pin_read.set_defaults(func=cmd_pin_read)
+
+    pin_write = pin_sub.add_parser("write", help="Set a pin to 0 or 1")
+    pin_write.add_argument("pin", help="Pin label or GPIO number")
+    pin_write.add_argument("level", type=int, choices=[0, 1],
+                           help="Output level (0 or 1)")
+    pin_write.set_defaults(func=cmd_pin_write)
+
+    pin_toggle = pin_sub.add_parser("toggle", help="Toggle a pin (invert output)")
+    pin_toggle.add_argument("pin", help="Pin label or GPIO number")
+    pin_toggle.set_defaults(func=cmd_pin_toggle)
+
+    pin_dir = pin_sub.add_parser("dir", help="Get or set pin direction")
+    pin_dir.add_argument("pin", help="Pin label or GPIO number")
+    pin_dir.add_argument("direction", nargs="?",
+                         choices=["IN", "OUT", "INOUT", "OFF"],
+                         help="Direction to set (omit to query)")
+    pin_dir.set_defaults(func=cmd_pin_dir)
 
     # --- status ---
     status = sub.add_parser("status", help="Show full DUT status (identity, name, wires)")

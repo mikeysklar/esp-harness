@@ -125,6 +125,7 @@ static const scpi_command_t kCommands[] = {
 
     /* Vendor: DUT metadata (board profile + NVS-backed wires) */
     { .pattern = "DUT:BOARd?",     .callback = harness_dut_scpi_board_q,    },
+    { .pattern = "DUT:PIN:LIST?",   .callback = harness_dut_scpi_pin_list_q, },
     { .pattern = "DUT:NAME",        .callback = harness_dut_scpi_name,       },
     { .pattern = "DUT:NAME?",       .callback = harness_dut_scpi_name_q,     },
     { .pattern = "DUT:NOTE",        .callback = harness_dut_scpi_note,       },

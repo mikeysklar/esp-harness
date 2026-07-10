@@ -3,6 +3,7 @@
 #include "freertos/task.h"
 #include "esp_log.h"
 #include "esp_heap_caps.h"
+#include "nvs_flash.h"
 #include "tinyusb.h"
 #include "tinyusb_default_config.h"
 #include "tinyusb_cdc_acm.h"
@@ -54,7 +55,15 @@ void app_main(void)
 {
     ESP_LOGI(TAG, "esp-harness starting");
 
-    /* DUT metadata first -- harness_gpio's pin resolver consults it. */
+    /* NVS first -- harness_dut_init() reads persisted wire metadata. */
+    esp_err_t err = nvs_flash_init();
+    if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        err = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(err);
+
+    /* DUT metadata next -- harness_gpio's pin resolver consults it. */
     ESP_ERROR_CHECK(harness_dut_init());
 
     /* TinyUSB CDC */
