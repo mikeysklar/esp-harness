@@ -324,6 +324,9 @@ class Harness(_HarnessCommands):
             write_termination="\n",
         )
         self._inst.timeout = timeout_ms
+        # Same reason as HarnessSerial.write: arbitrary blocks carry raw
+        # bytes and pyvisa defaults to ascii.
+        self._inst.encoding = "latin-1"
 
     def write(self, cmd: str) -> None:
         self._inst.write(cmd)
@@ -360,7 +363,9 @@ class HarnessSerial(_HarnessCommands):
         self._ser = serial.Serial(port, baudrate=baud_rate, timeout=timeout_s)
 
     def write(self, cmd: str) -> None:
-        self._ser.write(cmd.encode("ascii") + b"\n")
+        # Blocks are built as latin-1 by the callers, so the write must be
+        # byte-transparent; ascii raises on any payload byte >= 0x80.
+        self._ser.write(cmd.encode("latin-1") + b"\n")
 
     def query(self, cmd: str) -> str:
         self.write(cmd)
