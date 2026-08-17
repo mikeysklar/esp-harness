@@ -45,7 +45,7 @@ vendor-defined extensions, which SCPI-1999 explicitly permits.
 
 | Type        | Form                                              |
 |-------------|---------------------------------------------------|
-| Integer     | `12`, `0x0C`, `#H0C`, `#B1100`                    |
+| Integer     | `12`, `#H0C`, `#Q14`, `#B1100`                    |
 | Boolean     | `0` / `1` / `OFF` / `ON`                          |
 | Enum        | Short or long form mnemonic (e.g. `OUT`, `MODE0`) |
 | String      | `"text"` (IEEE 488.2 §7.7.5)                      |
@@ -133,8 +133,12 @@ strict SCPI compliance and are safe to ignore.
 Anywhere a command takes a pin &mdash; the `pin` slot in every `:GPIO:*` op,
 and the `sda`/`scl`/`sck`/`mosi`/`miso`/`cs`/`tx`/`rx` slots in
 `:BUS:*:INIT` &mdash; the argument may be **either** a numeric GPIO
-(`12`, `0x0C`) **or** a quoted DUT pin label set previously via `:DUT:PIN`
+(`12`, `#H0C`) **or** a quoted DUT pin label from the compiled-in board profile
 (e.g. `"SDA"`).
+
+Non-decimal integers use the IEEE 488.2 forms `#H` (hex), `#Q` (octal) and `#B`
+(binary). C-style `0x` is not valid SCPI and is rejected with
+`-101,"Invalid character"`.
 
 For `:GPIO:*` ops the resolved GPIO must lie in `0..54` (ESP32-P4 range).
 For `:BUS:*:INIT` the value `-1` is additionally accepted to mean "unused"
@@ -218,6 +222,7 @@ and are stored in NVS.
 | Command               | Args                              | Reply / effect                                       |
 |-----------------------|-----------------------------------|------------------------------------------------------|
 | `:DUT:BOARd?`         | —                                 | Compiled-in board profile (CircuitPython name, e.g. `"adafruit_feather_esp32s3"`) |
+| `:DUT:PIN:LIST?`      | —                                 | `"label",gpio,"label",gpio,...` for the board profile |
 | `:DUT:NAME?`          | —                                 | Board name string (`""` if unset)                    |
 | `:DUT:NAME`           | `"name"`                          | Set board name                                       |
 | `:DUT:NOTE?`          | —                                 | Free-form note                                       |
@@ -272,16 +277,16 @@ GPIO:READ? "LED"
 BUS:I2C:CONT:INIT "SDA","SCL",400000  # "SDA","SCL" resolved via baked-in table
 BUS:I2C:CONT:SCAN?
 80,104
-BUS:I2C:CONT:WRITE 0x50,#10
-BUS:I2C:CONT:READ? 0x50,4
+BUS:I2C:CONT:WRITE #H50,#10
+BUS:I2C:CONT:READ? #H50,4
 #14<DE><AD><BE><EF>
 
 BUS:SPI:CONT:INIT 36,35,37,34,1000000,0
 BUS:SPI:CONT:XFER? #14<9F><00><00><00>
 #14<00><EF><40><18>
 
-# Target-mode example: pretend to be an I²C EEPROM at 0x50
-BUS:I2C:TARG:INIT 8,9,0x50
+# Target-mode example: pretend to be an I²C EEPROM at #H50
+BUS:I2C:TARG:INIT 8,9,#H50
 BUS:I2C:TARG:WRITE #14<DE><AD><BE><EF>      # queue 4 bytes for controller to read
 BUS:I2C:TARG:READ? 16,1000                  # pop up to 16 bytes the controller wrote
 
